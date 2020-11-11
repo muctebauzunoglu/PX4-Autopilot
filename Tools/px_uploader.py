@@ -197,7 +197,8 @@ class uploader(object):
     PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
     READ_MULTI_MAX  = 252            # protocol max is 255
 
-    NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
+    NSH_INIT1       = bytearray(b'\x2b\x2b\x2b') # "+++"
+    NSH_INIT2       = bytearray(b'\x0d\x0d\x0d')
     NSH_REBOOT_BL   = b"reboot -b\n"
     NSH_REBOOT      = b"reboot\n"
     MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b')
@@ -698,9 +699,11 @@ class uploader(object):
             self.__send(uploader.MAVLINK_REBOOT_ID1)
             self.__send(uploader.MAVLINK_REBOOT_ID0)
             # then try reboot via NSH
-            self.__send(uploader.NSH_INIT)
+            self.__send(uploader.NSH_INIT1)
+            self.__send(uploader.NSH_INIT2)
             self.__send(uploader.NSH_REBOOT_BL)
-            self.__send(uploader.NSH_INIT)
+            self.__send(uploader.NSH_INIT1)
+            self.__send(uploader.NSH_INIT2)
             self.__send(uploader.NSH_REBOOT)
             self.port.flush()
             self.port.baudrate = self.baudrate_bootloader
