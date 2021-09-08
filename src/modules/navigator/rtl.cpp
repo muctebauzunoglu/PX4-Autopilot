@@ -346,7 +346,7 @@ void RTL::set_rtl_item()
 	const float descend_altitude_target = min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
 	const float loiter_altitude = min(descend_altitude_target, _rtl_alt);
 
-	const int heading_mode = _param_rtl_hdg_md.get();
+	const RTLHeadingMode rtl_heading_mode = static_cast<RTLHeadingMode>(_param_rtl_hdg_md.get());
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -365,7 +365,7 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = _rtl_alt;
 			_mission_item.altitude_is_relative = false;
 
-			if (heading_mode != 1) {
+			if (rtl_heading_mode != RTLHeadingMode::RTL_DESTINATION_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 
 			} else {
@@ -393,15 +393,16 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = _rtl_alt;
 			_mission_item.altitude_is_relative = false;
 
-			if (heading_mode == 0) {
+			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING &&
+			    destination_dist > _param_rtl_min_dist.get()) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
-			} else if (heading_mode == 1 ||
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_DESTINATION_HEADING ||
 				   destination_dist < _param_rtl_min_dist.get()) {
 				// Use destination yaw if close to _destination.
 				_mission_item.yaw = _destination.yaw;
 
-			} else if (heading_mode == 2) {
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
@@ -429,15 +430,14 @@ void RTL::set_rtl_item()
 			// Except for vtol which might be still off here and should point towards this location.
 			const float d_current = get_distance_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
 
-			if (heading_mode == 0 ||
-			    (_navigator->get_vstatus()->is_vtol && d_current > _navigator->get_acceptance_radius())) {
+			if (_navigator->get_vstatus()->is_vtol && (d_current > _navigator->get_acceptance_radius())) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
 
-			} else if (heading_mode == 1) {
-				_mission_item.yaw = _destination.yaw;
-
-			} else if (heading_mode == 2) {
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
+
+			} else {
+				_mission_item.yaw = _destination.yaw;
 			}
 
 			if (_navigator->get_vstatus()->is_vtol) {
@@ -480,13 +480,11 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;    // Don't change altitude.
 			_mission_item.altitude_is_relative = false;
 
-			_mission_item.yaw = _destination.yaw;
-
-			if (heading_mode == 0 || heading_mode == 1) {
-				_mission_item.yaw = _destination.yaw;
-
-			} else if (heading_mode == 2) {
+			if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
+
+			} else {
+				_mission_item.yaw = _destination.yaw;
 			}
 
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
@@ -507,13 +505,13 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
-			if (heading_mode == 0) {
+			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
-			} else if (heading_mode == 1) {
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_DESTINATION_HEADING) {
 				_mission_item.yaw = _destination.yaw;
 
-			} else if (heading_mode == 2) {
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
@@ -539,13 +537,13 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
-			if (heading_mode == 0) {
+			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
-			} else if (heading_mode == 1) {
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_DESTINATION_HEADING) {
 				_mission_item.yaw = _destination.yaw;
 
-			} else if (heading_mode == 2) {
+			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
@@ -562,7 +560,7 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = _destination.alt;
 			_mission_item.altitude_is_relative = false;
 
-			if (heading_mode == 2) {
+			if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 
 			} else {
